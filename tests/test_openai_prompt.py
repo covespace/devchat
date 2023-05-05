@@ -9,7 +9,7 @@ from devchat.utils import get_git_user_info
 
 def test_prompt_init_and_set_response():
     name, email = get_git_user_info()
-    prompt = OpenAIPrompt(model="gpt-3.5-turbo", user_name=name, user_email=email)
+    prompt = OpenAIPrompt(model="gpt-3.5-turbo", user=name, email=email)
     assert prompt.model == "gpt-3.5-turbo"
 
     prompt.set_request("Where was the 2020 World Series played?")
@@ -44,7 +44,7 @@ def test_prompt_init_and_set_response():
 
 def test_prompt_model_mismatch():
     name, email = get_git_user_info()
-    prompt = OpenAIPrompt(model="gpt-3.5-turbo", user_name=name, user_email=email)
+    prompt = OpenAIPrompt(model="gpt-3.5-turbo", user=name, email=email)
 
     response_str = '''
     {
@@ -92,14 +92,14 @@ def fixture_responses():
 
 def test_append_response(responses):
     name, email = get_git_user_info()
-    prompt = OpenAIPrompt("gpt-3.5-turbo-0301", name, email)
+    prompt = OpenAIPrompt(model="gpt-3.5-turbo-0301", user=name, email=email)
 
     for response in responses:
         prompt.append_response(json.dumps(response))
 
     expected_messages = [
-        OpenAIMessage(message_type=MessageType.CONTEXT, role='assistant', content='Tomorrow.'),
-        OpenAIMessage(message_type=MessageType.CONTEXT, role='assistant', content='Tomorrow!')
+        OpenAIMessage(type=MessageType.CONTEXT, role='assistant', content='Tomorrow.'),
+        OpenAIMessage(type=MessageType.CONTEXT, role='assistant', content='Tomorrow!')
     ]
 
     assert len(prompt.responses) == len(expected_messages)
@@ -109,20 +109,21 @@ def test_append_response(responses):
 
 
 def test_messages_empty():
-    prompt = OpenAIPrompt("davinci-codex", "John Doe", "john.doe@example.com")
+    prompt = OpenAIPrompt(model="davinci-codex", user="John Doe", email="john.doe@example.com")
     assert prompt.messages == []
 
 
 def test_messages_instruct():
-    prompt = OpenAIPrompt("davinci-codex", "John Doe", "john.doe@example.com")
-    instruct_message = OpenAIMessage(MessageType.INSTRUCT, 'system', 'Instructions')
+    prompt = OpenAIPrompt(model="davinci-codex", user="John Doe", email="john.doe@example.com")
+    instruct_message = OpenAIMessage(type=MessageType.INSTRUCT, role='system',
+                                     content='Instructions')
     prompt.append_message(MessageType.INSTRUCT, 'Instructions')
     assert prompt.messages == [instruct_message.to_dict()]
 
 
 def test_messages_context():
-    prompt = OpenAIPrompt("davinci-codex", "John Doe", "john.doe@example.com")
-    context_message = OpenAIMessage(MessageType.CONTEXT, 'system', 'Context')
+    prompt = OpenAIPrompt(model="davinci-codex", user="John Doe", email="john.doe@example.com")
+    context_message = OpenAIMessage(type=MessageType.CONTEXT, role='system', content='Context')
     prompt.append_message(MessageType.CONTEXT, 'Context')
     expected_message = context_message.to_dict()
     expected_message["content"] = "<context>" + context_message.content
@@ -130,14 +131,14 @@ def test_messages_context():
 
 
 def test_messages_record():
-    prompt = OpenAIPrompt("davinci-codex", "John Doe", "john.doe@example.com")
+    prompt = OpenAIPrompt(model="davinci-codex", user="John Doe", email="john.doe@example.com")
     with pytest.raises(ValueError):
         prompt.append_message(MessageType.RECORD, 'Record')
 
 
 def test_messages_request():
-    prompt = OpenAIPrompt("davinci-codex", "John Doe", "john.doe@example.com")
-    request_message = OpenAIMessage(MessageType.RECORD, 'user', 'Request')
+    prompt = OpenAIPrompt(model="davinci-codex", user="John Doe", email="john.doe@example.com")
+    request_message = OpenAIMessage(type=MessageType.RECORD, role='user', content='Request')
     prompt.set_request('Request')
     expected_message = request_message.to_dict()
     expected_message["content"] = "<request>" + expected_message["content"]
@@ -145,10 +146,11 @@ def test_messages_request():
 
 
 def test_messages_combined():
-    prompt = OpenAIPrompt("davinci-codex", "John Doe", "john.doe@example.com")
-    instruct_message = OpenAIMessage(MessageType.INSTRUCT, 'system', 'Instructions')
-    context_message = OpenAIMessage(MessageType.CONTEXT, 'system', 'Context')
-    request_message = OpenAIMessage(MessageType.RECORD, 'user', 'Request')
+    prompt = OpenAIPrompt(model="davinci-codex", user="John Doe", email="john.doe@example.com")
+    instruct_message = OpenAIMessage(type=MessageType.INSTRUCT, role='system',
+                                     content='Instructions')
+    context_message = OpenAIMessage(type=MessageType.CONTEXT, role='system', content='Context')
+    request_message = OpenAIMessage(type=MessageType.RECORD, role='user', content='Request')
 
     prompt.append_message(MessageType.INSTRUCT, 'Instructions')
     prompt.append_message(MessageType.CONTEXT, 'Context')
@@ -168,12 +170,12 @@ def test_messages_combined():
 
 
 def test_messages_invalid_append():
-    prompt = OpenAIPrompt("davinci-codex", "John Doe", "john.doe@example.com")
+    prompt = OpenAIPrompt(model="davinci-codex", user="John Doe", email="john.doe@example.com")
     with pytest.raises(KeyError):
         prompt.append_message('invalid', 'Instructions')
 
 
 def test_messages_invalid_request():
-    prompt = OpenAIPrompt("davinci-codex", "John Doe", "john.doe@example.com")
+    prompt = OpenAIPrompt(model="davinci-codex", user="John Doe", email="john.doe@example.com")
     with pytest.raises(ValueError):
         prompt.set_request("")

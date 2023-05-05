@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
@@ -9,20 +10,15 @@ class MessageType(Enum):
     CONTEXT = "context"
 
 
+@dataclass
 class Message(ABC):
-    def __init__(self, message_type: MessageType, content: Optional[str] = ""):
-        if not isinstance(message_type, MessageType):
-            raise ValueError("Invalid message type")
-        self._type = message_type
-        self._content = content
+    type: MessageType
+    role: str
+    content: Optional[str] = ""
 
-    @property
-    def type(self) -> MessageType:
-        return self._type
-
-    @property
-    def content(self) -> str:
-        return self._content
+    def __post_init__(self):
+        if not isinstance(self.type, MessageType):
+            raise ValueError(f"Invalid message type: {self.type}")
 
     @classmethod
     @abstractmethod

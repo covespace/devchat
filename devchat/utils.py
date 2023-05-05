@@ -1,12 +1,32 @@
+import datetime
+import getpass
+import json
 import os
 import re
-import getpass
 import socket
 import subprocess
 from typing import List, Tuple
-import datetime
-import pytz
 from dateutil import tz
+import pytz
+from devchat.message import MessageType
+
+
+class MessageTypeEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, MessageType):
+            return o.value
+        return super().default(o)
+
+    def encode(self, o):
+        def convert_keys(obj):
+            if isinstance(obj, dict):
+                return {self.default(k) if isinstance(k, MessageType) else k: convert_keys(v)
+                        for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [convert_keys(item) for item in obj]
+            return obj
+
+        return super().encode(convert_keys(o))
 
 
 def find_git_root():
@@ -108,3 +128,49 @@ def update_dict(dict_to_update, key, value) -> dict:
     """
     dict_to_update[key] = value
     return dict_to_update
+
+
+def store_to_git(dict_object: dict) -> str:
+    # Serialize the dictionary as a JSON string
+    json_data = json.dumps(dict_object, cls=MessageTypeEncoder)
+
+    # Store the JSON string as a Git blob object
+    with subprocess.Popen(
+        ["git", "hash-object", "-w", "--stdin"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as git_hash_object_process:
+        git_hash_object_output, git_hash_object_error = git_hash_object_process.communicate(
+            input=json_data.encode("utf-8")
+        )
+
+    if git_hash_object_error:
+        raise RuntimeError(f"Error storing Git object: {git_hash_object_error.decode('utf-8')}")
+
+    # Get the hash of the stored Git object
+    git_object_hash = git_hash_object_output.decode("utf-8").strip()
+
+    # Create a Git note referencing the stored Git object
+    with subprocess.Popen(
+        ["git", "notes", "--ref", "devchat", "add", "-m", "store", git_object_hash],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as git_notes_process:
+        _, git_notes_error = git_notes_process.communicate()
+
+    if git_notes_error:
+        raise RuntimeError(f"Error creating Git note: {git_notes_error.decode('utf-8')}")
+
+    return git_object_hash
+
+
+def retrieve_from_git(sha1) -> dict:
+    result = subprocess.run(
+        ['git', 'cat-file', '-p', sha1],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True
+    )
+    serialized_object = result.stdout.decode('utf-8')
+    return json.loads(serialized_object)

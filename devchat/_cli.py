@@ -172,7 +172,7 @@ def log(skip, max_count):
     logs = []
     for index in range(skip, skip + max_count):
         name, email = get_git_user_info()
-        openai_prompt = OpenAIPrompt("gpt-3.5-turbo", name, email)
+        openai_prompt = OpenAIPrompt(model="gpt-3.5-turbo", user=name, email=email)
         openai_prompt.set_request(f"Prompt {index}")
         response = {
             "model": "gpt-3.5-turbo-0301",
@@ -193,5 +193,5 @@ def log(skip, max_count):
             }
         }
         openai_prompt.set_response(json.dumps(response))
-        logs = openai_prompt.shortlog() + logs
+        logs = openai_prompt.shortlog('38645242908d4f379f13e6ca886523526d9b28ab') + logs
     click.echo(json.dumps(logs))

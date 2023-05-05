@@ -1,8 +1,10 @@
+from dataclasses import asdict
 import os
 from typing import List
 from xml.etree.ElementTree import ParseError
 import networkx as nx
 from devchat.prompt import Prompt
+from devchat.utils import store_to_git
 
 
 class Store:
@@ -29,16 +31,14 @@ class Store:
         """
         return self._path
 
-    def store_prompt(self, prompt: Prompt):
+    def store_prompt(self, prompt: Prompt) -> str:
         """
         Store a prompt in the store.
 
         Args:
             prompt (Prompt): The prompt to store.
         """
-        if not prompt.hash:
-            prompt.set_hash()
-
+        prompt_hash = store_to_git(asdict(prompt))
         # Add the prompt to the graph
         self._graph.add_node(prompt.hash, timestamp=prompt.timestamp)
 
@@ -50,8 +50,9 @@ class Store:
         for reference_hash in prompt.references:
             if reference_hash not in self._graph:
                 raise ValueError(f'Reference {reference_hash} not found in the store.')
-            self._graph.add_edge(prompt.hash, reference_hash)
+            self._graph.add_edge(prompt_hash, reference_hash)
         nx.write_graphml(self._graph, self._path)
+        return prompt_hash
 
     def get_prompt(self, prompt_hash: str) -> dict:
         """

@@ -6,7 +6,7 @@ from devchat.utils import get_git_user_info
 def test_get_prompt(tmp_path):
     store = Store(tmp_path / "store.graphml")
     name, email = get_git_user_info()
-    prompt = OpenAIPrompt(model="gpt-3.5-turbo", user_name=name, user_email=email)
+    prompt = OpenAIPrompt(model="gpt-3.5-turbo", user=name, email=email)
     prompt.set_request("Where was the 2020 World Series played?")
     response_str = '''
     {
@@ -28,9 +28,9 @@ def test_get_prompt(tmp_path):
     }
     '''
     prompt.set_response(response_str)
-    store.store_prompt(prompt)
+    prompt_hash = store.store_prompt(prompt)
 
-    assert store.get_prompt(prompt.hash)['timestamp'] == prompt.timestamp
+    assert store.get_prompt(prompt_hash)['timestamp'] == prompt.timestamp
 
 
 def test_select_recent(tmp_path):
@@ -40,7 +40,7 @@ def test_select_recent(tmp_path):
     # Create and store 5 prompts
     hashes = []
     for index in range(5):
-        prompt = OpenAIPrompt(model="gpt-3.5-turbo", user_name=name, user_email=email)
+        prompt = OpenAIPrompt(model="gpt-3.5-turbo", user=name, email=email)
         prompt.set_request(f"Question {index}")
         response_str = f'''
         {{
@@ -62,8 +62,8 @@ def test_select_recent(tmp_path):
         }}
         '''
         prompt.set_response(response_str)
-        store.store_prompt(prompt)
-        hashes.append(prompt.hash)
+        prompt_hash = store.store_prompt(prompt)
+        hashes.append(prompt_hash)
 
     # Test selecting recent prompts
     recent_prompts = store.select_recent(0, 3)

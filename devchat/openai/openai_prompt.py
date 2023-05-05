@@ -1,6 +1,6 @@
-from dataclasses import dataclass, field
 import json
 from typing import List
+from dataclasses import dataclass, field
 from devchat.prompt import Prompt
 from devchat.message import MessageType
 from devchat.utils import update_dict
@@ -43,12 +43,13 @@ class OpenAIPrompt(Prompt):
         """
         if message_type == MessageType.RECORD:
             raise ValueError("Use set_request() to set a message of type RECORD.")
-        self._messages[message_type].append(OpenAIMessage(message_type, 'system', content))
+        self._messages[message_type].append(OpenAIMessage(type=message_type, role='system',
+                                                          content=content))
 
     def set_request(self, content: str):
         if not content.strip():
             raise ValueError("The request cannot be empty.")
-        self._request = OpenAIMessage(MessageType.RECORD, 'user', content)
+        self._request = OpenAIMessage(type=MessageType.RECORD, role='user', content=content)
 
     def set_response(self, response_str: str):
         """
@@ -69,7 +70,6 @@ class OpenAIPrompt(Prompt):
             choice['index']: OpenAIMessage.from_dict(MessageType.RECORD, choice['message'])
             for choice in response_data['choices']
         }
-        self.set_hash()
 
     def append_response(self, delta_str: str) -> str:
         """

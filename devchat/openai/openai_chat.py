@@ -51,7 +51,7 @@ class OpenAIChat(Chat):
                            The returned prompt can be combined with more instructions and context.
         """
         user, email = get_git_user_info()
-        prompt = OpenAIPrompt(self.config.model, user, email)
+        prompt = OpenAIPrompt(model=self.config.model, user=user, email=email)
         prompt.set_request(request)
         return prompt
 
